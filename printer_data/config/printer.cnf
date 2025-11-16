@@ -1,0 +1,403 @@
+[virtual_sdcard]
+path: /home/pi/printer_data/gcodes
+on_error_gcode: CANCEL_PRINT
+
+## *** THINGS TO CHANGE/CHECK: ***
+## MCU paths                            [mcu] section
+## Thermistor types                     [extruder] and [heater_bed] sections - See https://www.klipper3d.org/Config_Reference.html#common-thermistors for common thermistor types
+## Z Endstop Switch location            [safe_z_home] section
+## Homing end position                  [gcode_macro G32] section
+## Z Endstop Switch  offset for Z0      [stepper_z] section
+## Probe points                         [quad_gantry_level] section
+## Min & Max gantry corner postions     [quad_gantry_level] section
+## PID tune                             [extruder] and [heater_bed] sections
+## Probe pin                            [probe] section
+## Fine tune E steps                    [extruder] section
+
+
+####################################
+#  Include Files 
+###################################
+[include extruder.cfg]
+[include tach_macro.cfg]
+[include led_jw.cfg]
+[include macros.cfg]
+[include beacon.cfg]
+[include homing.cfg]
+[include mainsail.cfg]
+
+####################################################################
+# Exclude Object 
+####################################################################
+[exclude_object]
+
+###################################
+[force_move]
+enable_force_move: True
+###################################
+
+
+[mcu]
+##--------------------------------------------------------------------
+# serial: /dev/serial/by-id/{REPLACE WITH YOUR SERIAL}
+canbus_uuid: 58548f7231fd
+# restart_method: command
+##--------------------------------------------------------------------
+
+[printer]
+kinematics: corexy
+max_velocity: 300  
+max_accel: 10000
+max_z_velocity: 15          #Max 15 for 12V TMC Drivers, can increase for 24V
+max_z_accel: 350
+square_corner_velocity: 5.0
+
+#####################################################################
+#   X/Y Stepper Settings
+#####################################################################
+
+##  B Stepper - Left
+##  Connected to HV STEPPER 0
+##  Endstop connected to X-ENDSTOP
+[stepper_x]
+step_pin: PB10
+dir_pin: !PB11
+enable_pin: !PG0
+rotation_distance: 40
+microsteps: 32
+full_steps_per_rotation:200  #set to 400 for 0.9 degree stepper
+endstop_pin: tmc5160_stepper_x:virtual_endstop
+position_min: 0
+##--------------------------------------------------------------------
+
+position_endstop: 300
+position_max: 300
+
+##--------------------------------------------------------------------
+homing_speed: 80   #Max 100
+homing_retract_dist: 0
+homing_positive_dir: true
+
+##  Make sure to update below for your relevant driver (2209 or 5160)
+[tmc5160 stepper_x]
+cs_pin: PE15
+spi_bus: spi4
+## Sensorless Homing
+diag0_pin: ^!PG1
+driver_sgt: 2 #range -1 - 6
+#$ --------
+interpolate: false
+run_current: 0.8
+sense_resistor: 0.075
+stealthchop_threshold: 0
+
+##  A Stepper - Right
+##  Connected to HV STEPPER 1
+##  Endstop connected to Y-ENDSTOP
+[stepper_y]
+step_pin: PF15
+dir_pin: !PF14
+enable_pin: !PE9
+rotation_distance: 40
+microsteps: 32
+full_steps_per_rotation:200  #set to 200 for 0.9 degree stepper
+endstop_pin: tmc5160_stepper_y:virtual_endstop
+position_min: 0
+##--------------------------------------------------------------------
+position_endstop: 300
+position_max: 300
+##--------------------------------------------------------------------
+homing_speed: 80  #Max 100
+homing_retract_dist: 0
+homing_positive_dir: true
+
+##  Make sure to update below for your relevant driver (2209 or 5160)
+[tmc5160 stepper_y]
+cs_pin: PE11
+spi_bus: spi4
+## Sensorless Homing
+diag0_pin: ^!PE10
+driver_sgt: 2 #range 0 - 7
+#$ --------
+interpolate: false
+run_current: 0.8
+sense_resistor: 0.075
+stealthchop_threshold: 0
+ 
+#####################################################################
+#   Z Stepper Settings
+#####################################################################
+
+## Z0 Stepper - Front Left
+##  Connected to STEPPER 0
+##  Endstop connected to Z-ENDSTOP
+[stepper_z]
+step_pin: PD4
+dir_pin: !PD3
+enable_pin: !PD7
+rotation_distance: 40
+gear_ratio: 80:16  
+microsteps: 32
+endstop_pin: probe:z_virtual_endstop
+# position_endstop: -0.5
+##--------------------------------------------------------------------
+##  Uncomment below for 300mm build
+position_max: 270
+##--------------------------------------------------------------------
+position_min: -5
+homing_speed: 8
+second_homing_speed: 3
+homing_retract_dist: 0
+
+##  Make sure to update below for your relevant driver (2209 or 5160)
+[tmc2209 stepper_z]
+uart_pin: PD5
+#diag_pin: ^!PD6
+interpolate: false
+run_current: 0.8
+sense_resistor: 0.110
+stealthchop_threshold: 0
+
+##  Z1 Stepper - Rear Left
+##  Connected to STEPPER 1
+[stepper_z1]
+step_pin: PC12
+dir_pin: PC11
+enable_pin: !PD2
+rotation_distance: 40
+gear_ratio: 80:16 
+microsteps: 32
+
+##  Make sure to update below for your relevant driver (2209 or 5160)
+[tmc2209 stepper_z1]
+uart_pin: PD0
+#diag_pin: ^!PD1
+interpolate: false
+run_current: 0.8
+sense_resistor: 0.110
+stealthchop_threshold: 0
+
+##  Z2 Stepper - Rear Right
+##  Connected to STEPPER 2
+[stepper_z2]
+step_pin: PC9
+dir_pin: !PC8
+enable_pin: !PC10
+rotation_distance: 40
+gear_ratio: 80:16 
+microsteps: 32
+
+[tmc2209 stepper_z2]
+uart_pin: PA8
+#diag_pin: ^!PA15
+interpolate: false
+run_current: 0.8
+sense_resistor: 0.110
+stealthchop_threshold: 0
+
+##  Z3 Stepper - Front Right
+##  Connected to STEPPER 3
+[stepper_z3]
+step_pin: PG7
+dir_pin: PG6
+enable_pin: !PC7
+rotation_distance: 40
+gear_ratio: 80:16 
+microsteps: 32
+
+[tmc2209 stepper_z3]
+uart_pin: PG8
+#diag_pin: ^!PC6
+interpolate: false
+run_current: 0.8
+sense_resistor: 0.110
+stealthchop_threshold: 0
+
+
+
+#####################################################################
+#   Bed Heater
+#####################################################################
+
+[heater_bed]
+##  SSR Pin - HEATBED
+##  Thermistor - TH1
+heater_pin: PG11
+sensor_type: Generic 3950
+sensor_pin: PA2
+pullup_resistor: 2200
+##  Adjust Max Power so your heater doesn't warp your bed. Rule of thumb is 0.4 watts / cm^2 .
+max_power: 0.6
+min_temp: 0
+max_temp: 120
+control: pid
+pid_Kp: 37.820
+pid_Ki: 1.254 
+pid_Kd: 285.069
+
+#####################################################################
+#   Probe
+#####################################################################
+
+# [probe]
+# ##  Inductive Probe
+# ##  Connected to Z-PROBE
+# ##  This probe is not used for Z height, only Quad Gantry Leveling
+# pin: ^PF1
+# x_offset: 0
+# y_offset: 25.0
+# z_offset: 0
+# speed: 10.0
+# samples: 3
+# samples_result: median
+# sample_retract_dist: 3.0
+# samples_tolerance: 0.006
+# samples_tolerance_retries: 3
+
+#####################################################################
+#   Fan Control
+#####################################################################
+
+[fan]
+##  Print Cooling Fan - FAN0
+pin: PB7
+##tachometer_pin: PB0
+kick_start_time: 0.5
+##  Depending on your fan, you may need to increase this value
+##  if your fan will not start. Can change cycle_time (increase)
+##  if your fan is not able to slow down effectively
+off_below: 0.10
+
+[controller_fan controller_fan]
+##  Controller fan - FAN2
+pin: PF7
+##tachometer_pin: PF6
+kick_start_time: 0.5
+heater: heater_bed
+
+#[heater_fan exhaust_fan]
+##  Exhaust fan - FAN3
+#pin: PF9
+##tachometer_pin: PF8
+#max_power: 1.0
+#shutdown_speed: 0.0
+#kick_start_time: 5.0
+#heater: heater_bed
+#heater_temp: 60
+#fan_speed: 1.0
+
+#####################################################################
+#   Filament sensor
+#####################################################################
+
+#[filament_switch_sensor Filament]
+#pause_on_runout: True
+#runout_gcode: M600
+#insert_gcode:
+#event_delay: 3.0
+#pause_delay: 0.5
+#switch_pin: !PC0
+
+#####################################################################
+#   LED Control
+#####################################################################
+
+# Chamber Lighting
+[output_pin caselight]
+pin: PE6
+pwm:true
+hardware_pwm: False
+value: 0.20 #startup value
+shutdown_value: 0
+value:1
+cycle_time: 0.00025
+
+## Neopixel (Optional)
+## Connected to NEOPIXEL
+# [neopixel rgb_light]
+# pin: PF10
+# chain_count: 3
+# color_order: GRBW
+# initial_RED: 0.0
+# initial_GREEN: 0.0
+# initial_BLUE: 0.0
+# initial_WHITE: 0.0
+
+#####################################################################
+#   Homing and Gantry Adjustment Routines
+#####################################################################
+
+[idle_timeout]
+timeout: 1800
+
+# [safe_z_home]
+# home_xy_position:-10,-10
+# speed:100
+# z_hop:10
+
+##  Use QUAD_GANTRY_LEVEL to level a gantry.
+##  Min & Max gantry corners - measure from nozzle at MIN (0,0) and 
+##  MAX (250, 250), (300,300), or (350,350) depending on your printer size
+##  to respective belt positions
+[quad_gantry_level]
+
+#-------------------------------------------------------------------- 
+#  Gantry Corners for 300mm Build
+gantry_corners:
+  -60,-10
+  360,370
+#  Probe points
+points:
+  50,25
+  50,225
+  250,225
+  250,25
+
+#--------------------------------------------------------------------
+speed: 300
+horizontal_move_z: 10
+retries: 5
+retry_tolerance: 0.0075
+max_adjust: 10
+
+
+#####################################################################
+# Bed Mesh
+#####################################################################
+[bed_mesh]
+speed: 300
+##--------------------------------------------------------------------
+##	Uncomment for 300mm build
+mesh_min: 40, 40
+mesh_max: 260,260
+##--------------------------------------------------------------------
+
+##-New update 7x7x7-------------------------------------------------------------------
+horizontal_move_z: 5
+probe_count: 7,7
+fade_start: 1.0
+fade_end: 10.0
+mesh_pps: 2,2
+algorithm: bicubic
+bicubic_tension: 0.2
+#####################################################################
+# Thermals
+#####################################################################
+
+[temperature_sensor raspberry_pi]
+sensor_type: temperature_host
+min_temp: 10
+max_temp: 100
+
+[temperature_sensor nhk]
+sensor_type: temperature_mcu
+min_temp: 0
+max_temp: 100
+
+# [temperature_sensor chamber]
+# sensor_type: Generic 3950
+# sensor_pin: PF4
+# min_temp: 0
+# max_temp: 100
+# gcode_id: C
+
